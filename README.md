@@ -18,4 +18,4 @@ Port of tools by A. Kalinowski, M. Bluj et al. based on KLUB/LLR trees (https://
 
 ---
 Release notes:
-16.01.2018, M.Bluj, initial version for 80X (2016) inputs with 942
+* 16.01.2018, M.Bluj, initial version for 80X (2016) inputs with 942
