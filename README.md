@@ -2,7 +2,7 @@
 
 Tools for running WAW ntuple production from NanoAOD by CMS
 
-Port of tools by A. Kalinowski, M. Bluj et al. based on [KLUB/LLR trees](https://github.com/akalinow/Production.git) to CMS NanoAOD
+Port of [tools by A. Kalinowski, M. Bluj et al. based on KLUB/LLR trees](https://github.com/akalinow/Production.git) to CMS NanoAOD
 
 ---
 
