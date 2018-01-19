@@ -22,13 +22,23 @@ HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, std:
     unsigned int verbosity = 0;//Set the debug level to 3 for testing
     svFitAlgo_ = new ClassicSVfit(verbosity);
     //svFitAlgo_->setMaxObjFunctionCalls(100000); // CV: default is 100000 evaluations of integrand per event
-    svFitAlgo_->setHistogramAdapter(new classic_svFit::DiTauSystemHistogramAdapter());
+    svFitAlgo_->setHistogramAdapter(new classic_svFit::DiTauSystemHistogramAdapter());//needed?
     //svFitAlgo_->setLikelihoodFileName("testClassicSVfit.root");//needed?
     svFitAlgo_->setDiTauMassConstraint(-1);//argument>0 constraints di-tau mass to its value
   } else
     svFitAlgo_=nullptr;
 
-  ////////////////////////////////////////////////////////////
+  ///Initialization of RecoilCorrector
+  bool correctRecoil=true;//FIXME: add it as a constructor argument
+  if(correctRecoil){
+    //std::string correctionFile = std::string(getenv("CMSSW_BASE"))+"/src/";
+    //correctionFile += "HTT-utilities/RecoilCorrections/data/TypeI-PFMet_Run2016BtoH.root";
+    std::string correctionFile = "HTT-utilities/RecoilCorrections/data/TypeI-PFMet_Run2016BtoH.root";
+    recoilCorrector_= new RecoilCorrector(correctionFile);
+  } else
+    recoilCorrector_=nullptr;
+
+  ///Get files with weights
   zPtReweightFile = new TFile("zpt_weights_2016_BtoH.root");  
   if(!zPtReweightFile) std::cout<<"Z pt reweight file zpt_weights.root is missing."<<std::endl;
   zptmass_histo = (TH2F*)zPtReweightFile->Get("zptmass_histo");
@@ -47,6 +57,7 @@ HTauTauTreeFromNanoBase::~HTauTauTreeFromNanoBase()
     delete httFile;
   }
   if(svFitAlgo_) delete svFitAlgo_;
+  if(recoilCorrector_) delete recoilCorrector_;
   if(zPtReweightFile) delete zPtReweightFile;
   if(zPtReweightSUSYFile) delete zPtReweightSUSYFile;
 }
@@ -281,6 +292,7 @@ void HTauTauTreeFromNanoBase::Loop(){
 	//fillLeptons();//moved
 	fillGenLeptons();
 	fillPairs(bestPairIndex);
+	applyMetRecoilCorrections();//should be done after the best pair is found and thus full event (jets) is defined. Therefore, corrected Met (and releted eg. mT) cannot be used to select the best pair
 
 	HTTPair & bestPair = httPairCollection[0];
         for(unsigned int sysType = (unsigned int)HTTAnalysis::NOMINAL;
@@ -442,8 +454,9 @@ void HTauTauTreeFromNanoBase::fillEvent(){
 
   TVector2 metPF;
   metPF.SetMagPhi(MET_pt, MET_phi);
-  httEvent->setMETFilterDecision(getMetFilterBits());
   httEvent->setMET(metPF);
+
+  httEvent->setMETFilterDecision(getMetFilterBits());
 
   if(b_Pileup_nTrueInt!=nullptr){//Assume that all those are filled for MC
     httEvent->setNPU(Pileup_nTrueInt); //??Pileup_nPU or Pileup_nTrueInt
@@ -453,16 +466,34 @@ void HTauTauTreeFromNanoBase::fillEvent(){
     httEvent->setLHEnOutPartons(LHE_Njets);
     //FIXMEhttEvent->setGenPV(TVector3(pvGen_x,pvGen_y,pvGen_z));
 
-    double ptReWeight = getPtReweight();
+    TLorentzVector genBosonP4, genBosonVisP4;
+    double ptReWeight = 1., ptReWeightSusy = 1.;
+    if( findBosonP4(genBosonP4,genBosonVisP4) ){
+      //std::cout<<"GenBos found! M="<<genBosonP4.M()<<", visM="<<genBosonVisP4.M()<<std::endl;
+      httEvent->setGenBosonP4(genBosonP4,genBosonVisP4);
+      ptReWeight = getPtReweight(genBosonP4);
+      bool doSUSY = true;
+      ptReWeightSusy = getPtReweight(genBosonP4,doSUSY);
+    }
+    else {
+      TLorentzVector topP4, antitopP4;
+      findTopP4(topP4, antitopP4);
+      ///TT reweighting according to
+      ///https://twiki.cern.ch/twiki/bin/view/CMS/TopSystematics#pt_top_Reweighting
+      if(topP4.M()>1E-3 && antitopP4.M()>1E-3){
+	double topPt = topP4.Perp();
+	double antitopPt = antitopP4.Perp();
+	double weightTop = exp(0.0615-0.0005*topPt);
+	double weightAntitop= exp(0.0615-0.0005*antitopPt);
+	ptReWeight = sqrt(weightTop*weightAntitop);
+      }
+    }
     httEvent->setPtReWeight(ptReWeight);
-
-    bool doSUSY = true;
-    ptReWeight = getPtReweight(doSUSY);
-    httEvent->setPtReWeightSUSY(ptReWeight);
+    httEvent->setPtReWeightSUSY(ptReWeightSusy);
 
     for(unsigned int iGenPart=0;iGenPart<nGenPart;++iGenPart){
       int absPDGId = std::abs(GenPart_pdgId[iGenPart]);
-      if(absPDGId == 25 || absPDGId == 23 || absPDGId == 36){
+      if(absPDGId == 25 || absPDGId == 23 || absPDGId == 35 || absPDGId == 36){
 	std::vector<unsigned int> daughterIndexes;
 	if(!getDirectDaughterIndexes(daughterIndexes,(int)iGenPart)) continue;
 	int ntau = 0, nele = 0, nmu = 0;
@@ -552,7 +583,7 @@ void HTauTauTreeFromNanoBase::fillEvent(){
 	  if(nmu == 1 && nele == 0) wDecay = 3;
 	  else wDecay = 6;
 	}
-	httEvent->setDecayModeBoson(wDecay);
+	httEvent->setDecayModeBoson(10+wDecay);
       }
       else if(GenPart_pdgId[iGenPart]==15){
 	TLorentzVector p4;
@@ -1216,32 +1247,34 @@ int HTauTauTreeFromNanoBase::getMetFilterBits(){
 }
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
-double HTauTauTreeFromNanoBase::getPtReweight(bool doSUSY){
+bool HTauTauTreeFromNanoBase::findBosonP4(TLorentzVector &bosonP4, TLorentzVector &visBosonP4){
 
-  //FIXME: check correctes with differet generators and samples
-  TLorentzVector genBosonP4;
-  TLorentzVector topP4, antitopP4;
+  bosonP4.SetXYZM(0,0,0,0);
+  visBosonP4.SetXYZM(0,0,0,0);
+
+  if(b_nGenPart==nullptr) return false;
 
   for(unsigned int iGen = 0; iGen < nGenPart; ++iGen) {
     unsigned int absPdgId = std::abs(GenPart_pdgId[iGen]);
+    if(absPdgId != 11 && absPdgId != 13 && absPdgId != 15 && //charged leptons
+       absPdgId != 12 && absPdgId != 14 && absPdgId != 16 ) //neutrinos
+      continue;
+    //mass is stored only m>10GeV and photons m>1GeV
+    double mass = GenPart_mass[iGen]>0 ? GenPart_mass[iGen] :
+      absPdgId==15 ? 1.7776 :
+      absPdgId==13 ? 0.10566 :
+      absPdgId==11 ? 0.51100e-3 : 0.;
 
     TLorentzVector p4;
     p4.SetPtEtaPhiM(GenPart_pt[iGen],
 		    GenPart_eta[iGen],
 		    GenPart_phi[iGen],
-		    GenPart_mass[iGen]);//mass is stored only m>10GeV and photons m>1GeV
-    if(absPdgId != 11 && absPdgId != 13 && absPdgId != 15 && //charged leptons
-       absPdgId != 12 && absPdgId != 14 && absPdgId != 16 && //neutrinos
-       absPdgId != 6 ) //top 
-      continue;
+		    mass);
 
     std::vector<unsigned int> daughterIndexes;
-    bool isFinal=getDirectDaughterIndexes(daughterIndexes,(int)iGen);
+    bool isFinal=getDirectDaughterIndexes(daughterIndexes,(int)iGen,false);//store neutrinos for further use
     if(!isFinal) continue;
 
-    if(GenPart_pdgId[iGen]==6) topP4 = p4;
-    if(GenPart_pdgId[iGen]==-6) antitopP4 = p4;
-    
     bool fromHardProcessFinalState = false; //MB: note that it is actually not checked if the particles are final state ones!
     unsigned int firstCp_idx = findFirstCopy(iGen);
     if(GenPart_status[firstCp_idx]==3 || (GenPart_status[firstCp_idx]>20 && GenPart_status[firstCp_idx]<30)) fromHardProcessFinalState |= true;
@@ -1287,10 +1320,65 @@ double HTauTauTreeFromNanoBase::getPtReweight(bool doSUSY){
     */
     //std::cout<<"\tpdgId="<<absPdgId<<", fromHardProcess:"<<fromHardProcessFinalState<<std::endl;
    //is the following correct? When undecayed particles are used (incl. taus) there should not be double counting
-     if ( fromHardProcessFinalState && (isMuon || isElectron || isNeutrino || isTau) )
-      genBosonP4 += p4;
+    if ( fromHardProcessFinalState && (isMuon || isElectron || isNeutrino || isTau) ){
+      bosonP4 += p4;
+      if(!isNeutrino)
+	visBosonP4 += p4;
+      else
+	visBosonP4 -= p4;
+      if(isTau){
+	//count tau neutrinos
+	for(unsigned int iDau=0; iDau<daughterIndexes.size(); ++iDau){
+	  unsigned int absPdgIdDau = std::abs(GenPart_pdgId[daughterIndexes[iDau]]);
+	  if(absPdgIdDau != 12 && absPdgIdDau != 14 && absPdgIdDau != 16 ) //neutrinos
+	    continue;
+	  TLorentzVector p4Dau;
+	  p4Dau.SetPtEtaPhiM(GenPart_pt[daughterIndexes[iDau]],
+			     GenPart_eta[daughterIndexes[iDau]],
+			     GenPart_phi[daughterIndexes[iDau]],
+			     0.);
+	  visBosonP4 -= p4Dau;
+	}
+      }
+    }
   }
-  //std::cout<<"boson mass="<<genBosonP4.M()<<std::endl;
+  //std::cout<<"boson mass="<<bosonP4.M()<<std::endl;
+
+ return ( bosonP4.M()>1E-3 || bosonP4.P()>1E-3 );
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+bool HTauTauTreeFromNanoBase::findTopP4(TLorentzVector &topP4, TLorentzVector &antiTopP4){
+
+  topP4.SetXYZM(0,0,0,0);
+  antiTopP4.SetXYZM(0,0,0,0);
+
+  if(b_nGenPart==nullptr) return false;
+
+  for(unsigned int iGen = 0; iGen < nGenPart; ++iGen) {
+    if(std::abs(GenPart_pdgId[iGen])!=6)
+      continue;
+
+    //mass is stored only m>10GeV and photons m>1GeV (fine for top)
+    TLorentzVector p4;
+    p4.SetPtEtaPhiM(GenPart_pt[iGen],
+		    GenPart_eta[iGen],
+		    GenPart_phi[iGen],
+		    GenPart_mass[iGen]);
+
+    std::vector<unsigned int> daughterIndexes;
+    bool isFinal=getDirectDaughterIndexes(daughterIndexes,(int)iGen);
+    if(!isFinal) continue;
+
+    if(GenPart_pdgId[iGen]==6) topP4 = p4;
+    if(GenPart_pdgId[iGen]==-6) antiTopP4 = p4;
+  }
+
+  return (topP4.M()>1E-3 && antiTopP4.M()>1E-3);
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+double HTauTauTreeFromNanoBase::getPtReweight(const TLorentzVector &genBosonP4, bool doSUSY){
 
   double weight = 1.0;
 
@@ -1304,16 +1392,6 @@ double HTauTauTreeFromNanoBase::getPtReweight(bool doSUSY){
     int massBin = hWeight->GetXaxis()->FindBin(mass);
     int ptBin = hWeight->GetYaxis()->FindBin(pt);
     weight = hWeight->GetBinContent(massBin,ptBin);
-  }
-
-  ///TT reweighting according to
-  ///https://twiki.cern.ch/twiki/bin/view/CMS/TopSystematics#pt_top_Reweighting
-  if(topP4.M()>1E-3 && antitopP4.M()>1E-3){
-    double topPt = topP4.Perp();
-    double antitopPt = antitopP4.Perp();
-    double weightTop = exp(0.0615-0.0005*topPt);
-    double weightAntitop= exp(0.0615-0.0005*antitopPt);
-    weight = sqrt(weightTop*weightAntitop);
   }
 
   return weight;
@@ -1446,6 +1524,77 @@ TLorentzVector HTauTauTreeFromNanoBase::runSVFitAlgo(const std::vector<classic_s
   }
 
   return p4SVFit;
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+void HTauTauTreeFromNanoBase::applyMetRecoilCorrections(){
+
+  // Do nothing if there is not best pair or recoilCorrector is not initialized
+  if( recoilCorrector_==nullptr || httPairCollection.empty() )
+    return;
+  TVector2 theUncorrMEt;
+  float corrMEtPx, corrMEtPy;
+  int nJets = httJetCollection.size();
+  if(httEvent->getDecayModeBoson()>=10)//W, add jet for rake tau
+    nJets++;
+  TLorentzVector genBosonP4 = httEvent->getGenBosonP4();
+  TLorentzVector genBosonVisP4 = httEvent->getGenBosonP4(true);
+  /* Do not correct Met in the event, keep it as it is
+  // Correct Met in the event
+  theUncorrMEt = httEvent->getMET();
+  recoilCorrector_->CorrectByMeanResolution(
+  //recoilCorrector_->Correct( //Quantile correction works better for MVA MET
+      theUncorrMEt.Px(),
+      theUncorrMEt.Py(),
+      genBosonP4.Px(),
+      genBosonP4.Py(),
+      genBosonVisP4.Px(),
+      genBosonVisP4.Py(),
+      nJets,
+      corrMEtPx,
+      corrMEtPy
+  );
+  httEvent->setMET( TVector2(corrMEtPx,corrMEtPy) );
+  */
+  // Correct Met in pairs (a priori it can be by-pair Met)
+  for(unsigned int iPair=0; iPair<httPairCollection.size(); ++iPair){
+    //theUncorrMEt = httEvent->getMET();
+    theUncorrMEt = httPairCollection[iPair].getMET();//TES corrected, fine??
+    recoilCorrector_->CorrectByMeanResolution(
+    //recoilCorrector_->Correct( //Quantile correction works better for MVA MET
+        theUncorrMEt.Px(),
+        theUncorrMEt.Py(),
+        genBosonP4.Px(),
+        genBosonP4.Py(),
+        genBosonVisP4.Px(),
+        genBosonVisP4.Py(),
+        nJets,
+        corrMEtPx,
+        corrMEtPy
+    );
+    //Remove TES correction to not have it twice
+    if( (std::abs(httPairCollection[iPair].getLeg1().getPDGid())==15 && httPairCollection[iPair].getLeg1().getProperty(PropertyEnum::mc_match)==5) ||
+        (std::abs(httPairCollection[iPair].getLeg2().getPDGid())==15 && httPairCollection[iPair].getLeg2().getProperty(PropertyEnum::mc_match)==5) ){
+      corrMEtPx-=httPairCollection[iPair].getLeg1().getP4(HTTAnalysis::DUMMY_SYS).X(); //uncor
+      corrMEtPx-=httPairCollection[iPair].getLeg2().getP4(HTTAnalysis::DUMMY_SYS).X(); //uncor
+      corrMEtPx+=httPairCollection[iPair].getLeg1().getP4(HTTAnalysis::NOMINAL).X();
+      corrMEtPx+=httPairCollection[iPair].getLeg2().getP4(HTTAnalysis::NOMINAL).X();
+      corrMEtPy-=httPairCollection[iPair].getLeg1().getP4(HTTAnalysis::DUMMY_SYS).Y(); //uncor
+      corrMEtPy-=httPairCollection[iPair].getLeg2().getP4(HTTAnalysis::DUMMY_SYS).Y(); //uncor
+      corrMEtPy+=httPairCollection[iPair].getLeg1().getP4(HTTAnalysis::NOMINAL).Y();
+      corrMEtPy+=httPairCollection[iPair].getLeg2().getP4(HTTAnalysis::NOMINAL).Y();
+    }
+    httPairCollection[iPair].setMET( TVector2(corrMEtPx,corrMEtPy) );
+
+    //recompute mT's using consistently TES corrected MEt and Pt
+    double mTLeg1 = TMath::Sqrt(2.*httPairCollection[iPair].getLeg1().getP4().Pt()*httPairCollection[iPair].getMET().Mod()*(1.-TMath::Cos(httPairCollection[iPair].getLeg1().getP4().Phi()-httPairCollection[iPair].getMET().Phi())));
+    double mTLeg2 = TMath::Sqrt(2.*httPairCollection[iPair].getLeg2().getP4().Pt()*httPairCollection[iPair].getMET().Mod()*(1.-TMath::Cos(httPairCollection[iPair].getLeg2().getP4().Phi()-httPairCollection[iPair].getMET().Phi())));
+
+    httPairCollection[iPair].setMTLeg1(mTLeg1);
+    httPairCollection[iPair].setMTLeg2(mTLeg2);
+  }
+
+  return;
 }
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////

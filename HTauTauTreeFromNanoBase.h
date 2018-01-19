@@ -28,8 +28,7 @@
 #include "TauAnalysis/ClassicSVfit/interface/MeasuredTauLepton.h"
 #include "TauAnalysis/ClassicSVfit/interface/svFitHistogramAdapter.h"
 
-//forward declarations
-class ClassicSVfit;
+#include "HTT-utilities/RecoilCorrections/interface/RecoilCorrector.h"
 
 class HTauTauTreeFromNanoBase : public NanoEventsSkeleton {
 public :
@@ -55,6 +54,7 @@ public :
   virtual void fillJets(unsigned int bestPairIndex);
   virtual void fillLeptons();
   virtual void fillGenLeptons();
+  void applyMetRecoilCorrections();
   virtual bool thirdLeptonVeto(unsigned int signalLeg1Index, unsigned int signalLeg2Index, int leptonPdg, double dRmin=-1);
   virtual bool extraMuonVeto(unsigned int signalLeg1Index, unsigned int signalLeg2Index, double dRmin=-1);
   virtual bool extraElectronVeto(unsigned int signalLeg1Index, unsigned int signalLeg2Index, double dRmin=-1);
@@ -69,7 +69,7 @@ public :
   int getMCMatching(unsigned int index, std::string colType="");
   int getTriggerMatchning(unsigned int index, bool checkBit=false, std::string colType="");
   int getMetFilterBits();
-  double getPtReweight(bool doSUSY=false);
+  double getPtReweight(const TLorentzVector &genBosonP4, bool doSUSY=false);
   bool isGoodToMatch(unsigned int ind);
   TLorentzVector getGenComponentP4(std::vector<unsigned int> &indexes, unsigned int iAbsCharge);
 
@@ -86,6 +86,8 @@ public :
   unsigned int findFinalCopy(unsigned int index);
   unsigned int findFirstCopy(unsigned int index);
   int genTauDecayMode(std::vector<unsigned int> &daughterIndexes);
+  bool findBosonP4(TLorentzVector &bosonP4, TLorentzVector &visBosonP4);
+  bool findTopP4(TLorentzVector &topP4, TLorentzVector &antiTopP4);
 
   std::vector<HTTPair> httPairCollection, httPairs_;
   std::vector<HTTParticle> httJetCollection;
@@ -102,6 +104,7 @@ public :
   unsigned int bestPairIndex_;
 
   ClassicSVfit *svFitAlgo_;
+  RecoilCorrector* recoilCorrector_;
   TFile* zPtReweightFile, *zPtReweightSUSYFile;
   TLorentzVector p4SVFit, p4Leg1SVFit, p4Leg2SVFit;   
 

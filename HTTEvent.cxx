@@ -35,6 +35,7 @@ void HTTEvent::clear(){
 
   mcWeight = 1.0;
   ptReWeight = 1.0;
+  ptReWeightSUSY = 1.0;
   lheHt = 1.0;
   lheNOutPartons = 0;
   aMCatNLOweight = 1.0;
@@ -60,10 +61,15 @@ void HTTEvent::clear(){
   AODPV*=0;
   refittedPV*=0;
 
+  met*=0;
+  bosP4*=0;
+  bosVisP4*=0;
+
   isRefit = false;
 
   nTracksInRefit = 0;
 
+  metFilterDecision = 0;
   selectionWord.ResetAllBits();
 }
 ////////////////////////////////////////////////

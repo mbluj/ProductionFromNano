@@ -62,6 +62,8 @@ class HTTEvent{
 
   void setDecayModeBoson(int x){decayModeBoson = x;}
 
+  void setGenBosonP4(const TLorentzVector &p4, const TLorentzVector &visP4) {bosP4 = p4; bosVisP4 = visP4; }
+
   void setGenPV(const TVector3 & aPV) {genPV = aPV;}
 
   void setAODPV(const TVector3 & aPV) {AODPV = aPV;}
@@ -115,6 +117,8 @@ class HTTEvent{
 
   int getDecayModeBoson() const {return decayModeBoson;}
 
+  TLorentzVector getGenBosonP4(bool visP4=false) const { return visP4 ? bosVisP4 : bosP4 ; }
+
   TVector2 getMET() const {return met;}
 
   const TVector3 & getGenPV() const {return genPV;}
@@ -163,6 +167,9 @@ class HTTEvent{
 
   ///Boson (H, Z, W) decay mode
   int decayModeBoson;
+
+  ///Boson (H, Z, W) p4 and visible p4
+  TLorentzVector bosP4, bosVisP4;
 
   ///Tau decay modes
   int decayModeMinus, decayModePlus;
