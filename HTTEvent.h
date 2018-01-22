@@ -42,6 +42,8 @@ class HTTEvent{
 
   void setNPV(unsigned int x){nPV = x;}
 
+  void setRho(float x){rho = x;}
+
   void setMCatNLOWeight(float x){aMCatNLOweight = x;}
 
   void setMCWeight(float x){mcWeight = x;}
@@ -96,6 +98,8 @@ class HTTEvent{
   float getNPU() const {return nPU;}
 
   unsigned int getNPV() const {return nPV;}
+
+  float getRho() const {return rho;}
 
   float getMCatNLOWeight() const {return aMCatNLOweight;}
 
@@ -161,6 +165,9 @@ class HTTEvent{
 
   //Number of reocnstructed PV
   unsigned int nPV;
+
+  ///PU energy density with FastJet, rho
+  float rho;
 
   ///Type of the physics process or DATA
   sampleTypeEnum sampleType;

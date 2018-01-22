@@ -32,6 +32,7 @@ void HTTEvent::clear(){
 
   nPU = 0;
   nPV = 0;
+  rho = 0;
 
   mcWeight = 1.0;
   ptReWeight = 1.0;

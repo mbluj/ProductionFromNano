@@ -447,6 +447,7 @@ void HTauTauTreeFromNanoBase::fillEvent(){
   httEvent->setEvent(event);
   httEvent->setLS(luminosityBlock);
   httEvent->setNPV(PV_npvs);
+  httEvent->setRho(fixedGridRhoFastjetAll);
 
   httEvent->setAODPV(TVector3(PV_x,PV_y,PV_z));
   httEvent->setRefittedPV(TVector3(PV_x,PV_y,PV_z));//FIXME
@@ -736,12 +737,13 @@ void HTauTauTreeFromNanoBase::fillLeptons(){
     aLepton.setPCA(pca);
     std::vector<Double_t> aProperties = getProperties(leptonPropertiesList, iTau, "Tau");
     aLepton.setProperties(aProperties);
-    //FIXME: for synch tests, should be removed -->
+    //FIXME: for synch tests, should be removed(?) -->
     bool vlMVA=(((int)Tau_idMVAoldDM[iTau] & (1<<0))==(1<<0));
     bool vlMVANew = (((int)Tau_idMVAnewDM[iTau] & (1<<0))==(1<<0));
     //bool vlMVAR03 = (((int)Tau_idMVAoldDMdR03[iTau] & (1<<0))==(1<<0));
     bool lComb = (Tau_rawIso[iTau]<2.5 && Tau_photonsOutsideSignalCone[iTau]<0.1*Tau_pt[iTau]);
     if( !(vlMVA||vlMVANew||lComb) ) continue;
+    //if( !(vlMVA) ) continue;
     //<--
     httLeptonCollection.push_back(aLepton);
   }//Taus
@@ -1140,7 +1142,7 @@ int HTauTauTreeFromNanoBase::getTriggerMatchning(unsigned int index, bool checkB
 
   TLorentzVector p4_1;
   unsigned int particleId=0;
-  double dRmax=0.25;
+  double dRmax=0.5;//was 0.25
   if(colType=="Muon"){
     if(index>=nMuon) return 0;
     particleId=13;
@@ -1189,7 +1191,7 @@ int HTauTauTreeFromNanoBase::getTriggerMatchning(unsigned int index, bool checkB
 			    TrigObj_eta[iObj],
 			    TrigObj_phi[iObj],
 			    0.);
-	if(p4_1.DeltaR(p4_trg)>dRmax) continue;
+	if( !(p4_1.DeltaR(p4_trg)<dRmax) ) continue;
 	if( triggerBits_[iTrg].leg1Pt>0 && !(TrigObj_pt[iObj]>triggerBits_[iTrg].leg1Pt) ) continue;
 	if( triggerBits_[iTrg].leg1Eta>0 && !(std::abs(TrigObj_eta[iObj])<triggerBits_[iTrg].leg1Eta) ) continue;
 	if( triggerBits_[iTrg].leg1L1Pt>0 && !(TrigObj_l1pt[iObj]>triggerBits_[iTrg].leg1L1Pt) ) continue;
@@ -1212,7 +1214,7 @@ int HTauTauTreeFromNanoBase::getTriggerMatchning(unsigned int index, bool checkB
 			    TrigObj_eta[iObj],
 			    TrigObj_phi[iObj],
 			    0.);
-	if(p4_1.DeltaR(p4_trg)>dRmax) continue;
+	if( !(p4_1.DeltaR(p4_trg)<dRmax) ) continue;
 	if( triggerBits_[iTrg].leg2Pt>0 && !(TrigObj_pt[iObj]>triggerBits_[iTrg].leg2Pt) ) continue;
 	if( triggerBits_[iTrg].leg2Eta>0 && !(std::abs(TrigObj_eta[iObj])<triggerBits_[iTrg].leg2Eta) ) continue;
 	if( triggerBits_[iTrg].leg2L1Pt>0 && !(TrigObj_l1pt[iObj]>triggerBits_[iTrg].leg2L1Pt) ) continue;
@@ -1609,7 +1611,7 @@ bool HTauTauTreeFromNanoBase::compareLeptons(const HTTParticle& i, const HTTPart
   else if(std::abs(j.getPDGid())==13)//mu
     j_type=0;
   if(i_type > j_type) return false;
-  else if(i_type == j_type && i.getP4().Pt() < j.getP4().Pt() ) return false;
+  if(i_type == j_type && i.getP4().Pt() < j.getP4().Pt() ) return false;
 
   return true;
 }
@@ -1617,6 +1619,13 @@ bool HTauTauTreeFromNanoBase::compareLeptons(const HTTParticle& i, const HTTPart
 /////////////////////////////////////////////////
 bool HTauTauTreeFromNanoBase::comparePairs(const HTTPair& i, const HTTPair& j){
   double i_iso=999, j_iso=999;
+  unsigned int i_type=2, j_type=2;
+
+  //step 0.5, leg 1 type
+  i_type = std::abs(i.getLeg1().getPDGid())==15 ? 2: std::abs(i.getLeg1().getPDGid())==11 ? 1: 0;
+  j_type = std::abs(j.getLeg1().getPDGid())==15 ? 2: std::abs(j.getLeg1().getPDGid())==11 ? 1: 0;
+  if (i_type<j_type) return true;
+  else if(i_type>j_type) return false;
 
   //step 1, leg 1 ISO
   i_iso = std::abs(i.getLeg1().getPDGid())==15 ? -i.getLeg1().getProperty(PropertyEnum::rawMVAoldDM) : std::abs(i.getLeg1().getPDGid())==11 ? i.getLeg1().getProperty(PropertyEnum::pfRelIso03_all): i.getLeg1().getProperty(PropertyEnum::pfRelIso04_all);
@@ -1629,6 +1638,12 @@ bool HTauTauTreeFromNanoBase::comparePairs(const HTTPair& i, const HTTPair& j){
   //step 2, leg 1 Pt
   if(i.getLeg1().getP4().Pt()>j.getLeg1().getP4().Pt()) return true;
   else if(i.getLeg1().getP4().Pt()<j.getLeg1().getP4().Pt()) return false;
+
+  //step 2.5, leg 2 type
+  i_type = std::abs(i.getLeg2().getPDGid())==15 ? 2: std::abs(i.getLeg2().getPDGid())==11 ? 1: 0;
+  j_type = std::abs(j.getLeg2().getPDGid())==15 ? 2: std::abs(j.getLeg2().getPDGid())==11 ? 1: 0;
+  if (i_type<j_type) return true;
+  else if(i_type>j_type) return false;
 
   //step 3, leg 2 ISO
   i_iso = std::abs(i.getLeg2().getPDGid())==15 ? -i.getLeg2().getProperty(PropertyEnum::rawMVAoldDM) : std::abs(i.getLeg2().getPDGid())==11 ? i.getLeg2().getProperty(PropertyEnum::pfRelIso03_all): i.getLeg2().getProperty(PropertyEnum::pfRelIso04_all);
