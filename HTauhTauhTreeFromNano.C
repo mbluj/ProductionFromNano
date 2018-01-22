@@ -22,8 +22,6 @@ bool HTauhTauhTreeFromNano::pairSelection(unsigned int iPair){
   int pdgIdLeg1 = httPairs_[iPair].getLeg1().getPDGid();
   int pdgIdLeg2 = httPairs_[iPair].getLeg2().getPDGid();
   if( std::abs(pdgIdLeg1)!=15 || std::abs(pdgIdLeg2)!=15 ) return 0;
-  unsigned int indexLeg1 = httPairs_[iPair].getIndexLeg1();
-  unsigned int indexLeg2 = httPairs_[iPair].getIndexLeg2();
 
   int tauIDmask = 0, tauIDmaskMedium = 0 , tauIDmaskLoose = 0;
   for(unsigned int iBit=0;iBit<HTTEvent::ntauIds;iBit++){
@@ -44,6 +42,8 @@ bool HTauhTauhTreeFromNano::pairSelection(unsigned int iPair){
       tauIDmaskLoose |= (1<<iBit);
     }
   }
+  unsigned int indexLeg1 = httPairs_[iPair].getIndexLeg1();
+  unsigned int indexLeg2 = httPairs_[iPair].getIndexLeg2();
   //MB sort taus within the pair
   double pt_1 = httLeptonCollection[indexLeg1].getP4().Pt();
   double pt_2 = httLeptonCollection[indexLeg2].getP4().Pt();
@@ -100,7 +100,7 @@ bool HTauhTauhTreeFromNano::pairSelection(unsigned int iPair){
 unsigned int HTauhTauhTreeFromNano::bestPair(std::vector<unsigned int> &pairIndexes){
 
   unsigned int bestIndex = 9999;
-  ///Pair are already sorted during the ntuple creation?
+  ///Pairs are already sorted during the ntuple creation?
   double iso_1=std::numeric_limits<double>::infinity(), iso_2=std::numeric_limits<double>::infinity(), pt_1=-1, pt_2=-1;
   if(pairIndexes.size()) {
     //return pairIndexes[0];//MB
