@@ -30,6 +30,9 @@
 
 #include "HTT-utilities/RecoilCorrections/interface/RecoilCorrector.h"
 
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
+
 class HTauTauTreeFromNanoBase : public NanoEventsSkeleton {
 public :
 
@@ -47,6 +50,7 @@ public :
   };
 
   virtual void initHTTTree(TTree *tree, std::string prefix="HTT");
+  void initJecUnc(std::string correctionFile);
 
   void fillEvent();
   virtual bool buildPairs();
@@ -78,6 +82,7 @@ public :
   std::vector<Double_t> getProperties(const std::vector<std::string> & propertiesList, unsigned int index, std::string colType="");
   void writePropertiesHeader(const std::vector<std::string> & propertiesList);
   void writeTriggersHeader(const std::vector<TriggerData> &triggerBits);
+  double getJecUnc(unsigned int index, std::string name="Total", bool up=true);
   static bool compareLeptons(const HTTParticle& i, const HTTParticle& j);
   static bool comparePairs(const HTTPair& i, const HTTPair& j);
   //int isGenPartDaughterPdgId(int index, unsigned int aPdgId);
@@ -108,7 +113,8 @@ public :
   TFile* zPtReweightFile, *zPtReweightSUSYFile;
   TLorentzVector p4SVFit, p4Leg1SVFit, p4Leg2SVFit;   
 
-  std::vector<std::string> leptonPropertiesList, genLeptonPropertiesList;
+  std::vector<std::string> leptonPropertiesList, genLeptonPropertiesList, jecUncertList;
+  std::vector<JetCorrectionUncertainty*> jecUncerts;
 
   HTauTauTreeFromNanoBase(TTree *tree=0, bool doSvFit=false, std::string prefix="HTT");
   virtual ~HTauTauTreeFromNanoBase();

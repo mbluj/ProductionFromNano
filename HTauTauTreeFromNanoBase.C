@@ -11,6 +11,7 @@
 #include <fstream>
 #include <algorithm>
 
+//FIXME: add parameters: recoil corr(bool), jecUncFile(std::string)??
 HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, std::string prefix) : NanoEventsSkeleton(tree)
 {
 
@@ -46,7 +47,10 @@ HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, std:
   zPtReweightSUSYFile = new TFile("zpt_weights_summer2016.root");  
   if(!zPtReweightSUSYFile) std::cout<<"SUSY Z pt reweight file zpt_weights.root is missing."<<std::endl;
   zptmass_histo_SUSY = (TH2F*)zPtReweightSUSYFile->Get("zptmass_histo");
-   
+
+  ///Instantiate JEC uncertainty sources
+  ///https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECDataMC
+  initJecUnc("Summer16_23Sep2016V4_MC_UncertaintySources_AK4PFchs.txt");//need to data file to process
 }
 
 HTauTauTreeFromNanoBase::~HTauTauTreeFromNanoBase()
@@ -121,7 +125,6 @@ void HTauTauTreeFromNanoBase::initHTTTree(TTree *tree, std::string prefix){
   leptonPropertiesList.push_back("Jet_rawFactor");//was rawPt is rawFactor=rawPt/corrPt
   leptonPropertiesList.push_back("Jet_area");
   leptonPropertiesList.push_back("Jet_puId");
-  leptonPropertiesList.push_back("Jet_jecUnc");//FIXME: need to be retrieviewd from an exteranl source
   leptonPropertiesList.push_back("Jet_partonFlavour");
   //leptonPropertiesList.push_back("bDiscriminator");?
   leptonPropertiesList.push_back("Jet_btagCSVV2");
@@ -663,6 +666,14 @@ void HTauTauTreeFromNanoBase::fillJets(unsigned int bestPairIndex){
     std::vector<Double_t> aProperties = getProperties(leptonPropertiesList, iJet,"Jet");
     ///Set jet PDG id by hand
     aProperties[(unsigned int)PropertyEnum::pdgId] = 98.0;
+    ///JEC uncertaintes
+    // Up
+    for(unsigned int iUnc=0; iUnc<jecUncertList.size(); ++iUnc)
+      aProperties.push_back(getJecUnc(iJet, jecUncertList[iUnc] ,true));
+    // Down
+    for(unsigned int iUnc=0; iUnc<jecUncertList.size(); ++iUnc)
+      aProperties.push_back(getJecUnc(iJet, jecUncertList[iUnc] ,false));
+
     aJet.setProperties(aProperties);
 
     aJet.setP4(p4);
@@ -915,8 +926,7 @@ Double_t  HTauTauTreeFromNanoBase::getProperty(std::string name, unsigned int in
     }      
   }
   else if(colType=="Jet"){
-    if(name.find("Jet_")==std::string::npos ||
-       name.find("Jet_jecUnc")!=std::string::npos) //JecUnc has to be taken from outside
+    if(name.find("Jet_")==std::string::npos)
       return 0;
   }
 
@@ -942,6 +952,57 @@ Double_t  HTauTauTreeFromNanoBase::getProperty(std::string name, unsigned int in
   }
 
   return 0;
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+void HTauTauTreeFromNanoBase::initJecUnc(std::string correctionFile){
+  ///uncertainties
+  const int nsrc = 27;//+6;
+  const std::string srcnames[nsrc] =
+    {"AbsoluteStat", "AbsoluteScale", "AbsoluteMPFBias",
+     "Fragmentation",
+     "SinglePionECAL", "SinglePionHCAL",
+     "FlavorQCD",
+     "TimePtEta",
+     "RelativeJEREC1", "RelativeJEREC2", "RelativeJERHF",
+     "RelativePtBB","RelativePtEC1", "RelativePtEC2", "RelativePtHF",
+     "RelativeBal",
+     "RelativeFSR",
+     "RelativeStatFSR","RelativeStatEC", "RelativeStatHF",
+     "PileUpDataMC",
+     "PileUpPtRef", "PileUpPtBB", "PileUpPtEC1", "PileUpPtEC2", "PileUpPtHF",
+     //"SubTotalPileUp", "SubTotalRelative", "SubTotalPt", "SubTotalScale", "SubTotalAbsolute", "SubTotalMC", //MB: 6 quadratic sums of subsets of uncertainties
+     "Total"};//MB: sum of all uncertainties in quadrature
+
+  ofstream outputFile("JecUncEnum.h");
+  outputFile<<"enum class JecUncEnum { ";
+  for(unsigned int isrc = 0; isrc < nsrc; isrc++) {
+    JetCorrectorParameters *p = new JetCorrectorParameters(correctionFile, srcnames[isrc]);
+    JetCorrectionUncertainty *unc = new JetCorrectionUncertainty(*p);
+    jecUncertList.push_back(srcnames[isrc]);
+    jecUncerts.push_back(unc);
+    outputFile<<srcnames[isrc]<<" = "<<isrc<<", "<<std::endl;
+  }
+  outputFile<<"NONE"<<" = "<<nsrc<<std::endl;
+  outputFile<<"};"<<std::endl;
+  outputFile.close();
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+double HTauTauTreeFromNanoBase::getJecUnc(unsigned int index, std::string name,bool up){
+  double result = 0;
+  double jetpt = Jet_pt[index];
+  double jeteta =  Jet_eta[index];
+  for(unsigned int isrc = 0; isrc < jecUncertList.size(); isrc++) {
+    if(jecUncertList[isrc]=="name"){
+      JetCorrectionUncertainty *unc = jecUncerts[isrc];
+      unc->setJetPt(jetpt);
+      unc->setJetEta(jeteta);
+      result = unc->getUncertainty(up);
+      break;
+    }
+  }
+  return result;
 }
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////

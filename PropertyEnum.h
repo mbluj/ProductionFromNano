@@ -26,9 +26,8 @@ mc_match = 24,
 rawFactor = 25, 
 area = 26, 
 puId = 27, 
-jecUnc = 28, 
-partonFlavour = 29, 
-btagCSVV2 = 30, 
-jetId = 31, 
-NONE = 32
+partonFlavour = 28, 
+btagCSVV2 = 29, 
+jetId = 30, 
+NONE = 31
 };

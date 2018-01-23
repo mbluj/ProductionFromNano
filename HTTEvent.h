@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "PropertyEnum.h"
+#include "JecUncEnum.h"
 #include "TriggerEnum.h"
 #include "SelectionBitsEnum.h"
 #include "AnalysisEnums.h"

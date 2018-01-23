@@ -90,13 +90,13 @@ eventCategory *myQCDSFDenom;
 
 enum sysEffects {NOMINAL,
                  TESUp, TESDown,
-                 JESUp, JESDown,
                  M2TUp, M2TDown,
                  E2TUp, E2TDown,
                  DUMMY_SYS,
 ///Place systematic effects not affecting the SV calculation after DUMMY_SYS
 ///all quantities for following syst effects are calculated on fly, no need to rerun
 ///the ntuple making step.
+                 JESUp, JESDown,
                  J2TUp, J2TDown,
                  ZPtUp, ZPtDown,
                  TTUp, TTDown,
