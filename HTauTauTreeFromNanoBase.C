@@ -994,7 +994,7 @@ double HTauTauTreeFromNanoBase::getJecUnc(unsigned int index, std::string name,b
   double jetpt = Jet_pt[index];
   double jeteta =  Jet_eta[index];
   for(unsigned int isrc = 0; isrc < jecUncertList.size(); isrc++) {
-    if(jecUncertList[isrc]=="name"){
+    if(jecUncertList[isrc]==name){
       JetCorrectionUncertainty *unc = jecUncerts[isrc];
       unc->setJetPt(jetpt);
       unc->setJetEta(jeteta);
