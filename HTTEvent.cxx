@@ -160,7 +160,8 @@ const TLorentzVector & HTTParticle::getSystScaleP4(HTTAnalysis::sysEffects type)
       JES = getProperty(PropertyEnum((int)PropertyEnum::NONE+(int)JecUncEnum::Total));
       break;
     case (int)HTTAnalysis::JESDown :
-      JES = getProperty(PropertyEnum((int)PropertyEnum::NONE+(int)JecUncEnum::NONE+(int)JecUncEnum::Total));
+      //JES = -getProperty(PropertyEnum((int)PropertyEnum::NONE+(int)JecUncEnum::NONE+(int)JecUncEnum::Total));//Down uncertainties always with "-"
+      JES = -getProperty(PropertyEnum((int)PropertyEnum::NONE+(int)JecUncEnum::Total));//For "Total" use symmetrically Up uncert also for Down (correct?)
       break;
     }
     return getShiftedP4(1+JES,false);
