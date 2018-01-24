@@ -79,7 +79,7 @@ def prepareCrabCfg(dataset,
     config.General.requestName = shortName
 
     config.Data.inputDataset = dataset
-    config.Data.outLFNDirBase = '/store/user/mbluj/WAWNTupleFromNanoAOD/'+publish_data_suffix+"/"
+    config.Data.outLFNDirBase = "/store/user/bluj/WAWNTupleFromNanoAOD/"+publish_data_suffix+"/"
     config.Data.outputDatasetTag = shortName
     config.Data.inputDBS = inputDBS
 
@@ -105,7 +105,7 @@ def prepareCrabCfg(dataset,
     out = open('crabTmp.py','w')
     out.write(config.pythonise_())
     out.close()
-    #FIXMEos.system("crab submit -c crabTmp.py")
+    os.system("crab submit -c crabTmp.py")
     os.system("rm -f "+jsonFile.split("/")[-1])
 #########################################
 #########################################

@@ -17,7 +17,7 @@ config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
 config.Data.unitsPerJob = 1 #number of files per jobs
 config.Data.totalUnits =  -1 #number of event
-config.Data.outLFNDirBase = '/store/user/mbluj/WAWNTupleFromNanoAOD/'
+config.Data.outLFNDirBase = '/store/user/bluj/WAWNTupleFromNanoAOD/'
 config.Data.publication = False
 config.Data.outputDatasetTag = 'Dummy'
 
