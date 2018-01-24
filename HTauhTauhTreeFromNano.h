@@ -23,7 +23,7 @@ class HTauhTauhTreeFromNano : public HTauTauTreeFromNanoBase {
   unsigned int bestPair(std::vector<unsigned int> &pairIndexes);
   /////////////////////////////////////////////////
   
-  HTauhTauhTreeFromNano(TTree *tree=0, bool doSvFit=false, std::string prefix="HTTTT");
+  HTauhTauhTreeFromNano(TTree *tree=0, bool doSvFit=false, bool correctRecoil=false, std::string prefix="HTTTT");
   virtual ~HTauhTauhTreeFromNano();
   
 };
@@ -31,7 +31,7 @@ class HTauhTauhTreeFromNano : public HTauTauTreeFromNanoBase {
 #endif
 
 #ifdef HTauhTauhTreeFromNano_cxx
-HTauhTauhTreeFromNano::HTauhTauhTreeFromNano(TTree *tree, bool doSvFit, std::string prefix) : HTauTauTreeFromNanoBase(tree, doSvFit, prefix) 
+HTauhTauhTreeFromNano::HTauhTauhTreeFromNano(TTree *tree, bool doSvFit, bool correctRecoil, std::string prefix) : HTauTauTreeFromNanoBase(tree, doSvFit, correctRecoil, prefix)
 {}
 
 HTauhTauhTreeFromNano::~HTauhTauhTreeFromNano()

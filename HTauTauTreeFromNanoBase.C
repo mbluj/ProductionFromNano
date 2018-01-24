@@ -11,8 +11,7 @@
 #include <fstream>
 #include <algorithm>
 
-//FIXME: add parameters: recoil corr(bool), jecUncFile(std::string)??
-HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, std::string prefix) : NanoEventsSkeleton(tree)
+HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, bool correctRecoil, std::string prefix) : NanoEventsSkeleton(tree)
 {
 
   ///Init HTT ntuple
@@ -30,7 +29,6 @@ HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, std:
     svFitAlgo_=nullptr;
 
   ///Initialization of RecoilCorrector
-  bool correctRecoil=true;//FIXME: add it as a constructor argument
   if(correctRecoil){
     //std::string correctionFile = std::string(getenv("CMSSW_BASE"))+"/src/";
     //correctionFile += "HTT-utilities/RecoilCorrections/data/TypeI-PFMet_Run2016BtoH.root";
@@ -990,6 +988,7 @@ void HTauTauTreeFromNanoBase::initJecUnc(std::string correctionFile){
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
 double HTauTauTreeFromNanoBase::getJecUnc(unsigned int index, std::string name,bool up){
+  if(b_nGenPart==nullptr) return 0;//MB: do not check it for data
   double result = 0;
   double jetpt = Jet_pt[index];
   double jeteta =  Jet_eta[index];

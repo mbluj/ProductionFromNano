@@ -116,7 +116,7 @@ public :
   std::vector<std::string> leptonPropertiesList, genLeptonPropertiesList, jecUncertList;
   std::vector<JetCorrectionUncertainty*> jecUncerts;
 
-  HTauTauTreeFromNanoBase(TTree *tree=0, bool doSvFit=false, std::string prefix="HTT");
+  HTauTauTreeFromNanoBase(TTree *tree=0, bool doSvFit=false, bool correctRecoil=false, std::string prefix="HTT");
   virtual ~HTauTauTreeFromNanoBase();
   virtual Int_t    Cut(Long64_t entry);
   virtual void     Loop();

@@ -7,8 +7,12 @@ from PSet import process
 
 #doSvFit = True
 doSvFit = False
+applyRecoil=True
+#applyRecoil=False
 if doSvFit :
     print "Run with SVFit computation"
+if applyRecoil :
+    print "Apply MET recoil corrections"
 
 #Some system have problem runnig compilation (missing glibc-static library?).
 #First we try to compile, and only ther we start time consuming cmssw
@@ -43,10 +47,10 @@ for name in fileNames:
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
     print "TTree entries: ",aTree.GetEntries()
-    HMuTauhTreeFromNano(aTree,doSvFit).Loop()
+    HMuTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
     print "Making the TauTau tree"
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
-    HTauhTauhTreeFromNano(aTree,doSvFit).Loop()    
+    HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
 
 exit(0)
