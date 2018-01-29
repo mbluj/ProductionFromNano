@@ -13,7 +13,9 @@ process.source = cms.Source("PoolSource",
                             fileNames = cms.untracked.vstring(
                             )
 )
+process.source.fileNames.append(
+    'file:///home/mbluj/work/data/NanoAOD/80X_with941/VBFHToTauTau_M-125_80X/v3/test80X_NANO_1.root'
+)
+#process.p = cms.Path()
 
-process.p = cms.Path()
-
-process.schedule = cms.Schedule(process.p)
+#process.schedule = cms.Schedule(process.p)

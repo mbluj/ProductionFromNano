@@ -4,7 +4,7 @@ config = Configuration()
 config.section_("General")
 config.General.requestName = 'Dummy'
 config.General.workArea = 'v1'
-config.General.transferLogs = True
+config.General.transferLogs = False
 
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'

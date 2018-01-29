@@ -29,9 +29,6 @@ print "Compilation status: ",status
 if status==0:
     exit(-1)
 
-#Produce framework report required by CRAB
-command = "cmsRun -j FrameworkJobReport.xml -p PSet.py"
-os.system(command)
 from ROOT import HMuTauhTreeFromNano, HTauhTauhTreeFromNano
 fileNames = ["test80X_NANO_1.root",
              "test80X_NANO_2.root",
@@ -52,5 +49,17 @@ for name in fileNames:
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
     HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
+
+#Produce framework report required by CRAB
+print "Generate framework report for CRAB"
+#Empty list of input files to avoid CMSSW exception due to incorrect input
+process.source.fileNames = []
+#Produce new configuration file with an updated source
+outFile = open("PSetTmp.py","w")
+outFile.write(process.dumpPython())
+outFile.close()
+command = "cmsRun -j FrameworkJobReport.xml -p PSetTmp.py"
+os.system(command)
+os.system("rm PSetTmp.py")
 
 exit(0)
