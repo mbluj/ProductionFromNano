@@ -70,16 +70,16 @@ grid-proxy-init
 #user = "konec"
 user = "bluj"
 
-version="test_v1"
+version_suffix="test_v1"
 
 #sourceEndpoint = "srm://se.grid.icm.edu.pl:8446/srm/managerv2?SFN=//"
 sourceEndpoint = "srm://se.cis.gov.pl:8446/srm/managerv2?SFN=//"
-destEndpoint = "./Data/"+version+"/"
+destEndpoint = "./Data/"
 
 
 ##katalogi ktore checmy skopiowac
 directories = [
-    "/dpm/cis.gov.pl/home/cms/store/user/bluj/WAWNTupleFromNanoAOD/"+version+"/",
+    "/dpm/cis.gov.pl/home/cms/store/user/bluj/WAWNTupleFromNanoAOD/"+version_suffix+"/",
 ]
 
 ## Mozemy kopiowac zawartosc wielu katalogow. Pliki sa kopiowane do katalogow
