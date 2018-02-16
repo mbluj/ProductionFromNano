@@ -113,6 +113,8 @@ public :
   TFile* zPtReweightFile, *zPtReweightSUSYFile;
   TLorentzVector p4SVFit, p4Leg1SVFit, p4Leg2SVFit;   
 
+  bool firstWarningOccurence_; // used to print warnings only at first occurnece in the event loop
+
   std::vector<std::string> leptonPropertiesList, genLeptonPropertiesList, jecUncertList;
   std::vector<JetCorrectionUncertainty*> jecUncerts;
 

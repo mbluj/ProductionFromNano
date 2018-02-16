@@ -49,6 +49,8 @@ HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, bool
   ///Instantiate JEC uncertainty sources
   ///https://twiki.cern.ch/twiki/bin/viewauth/CMS/JECDataMC
   initJecUnc("Summer16_23Sep2016V4_MC_UncertaintySources_AK4PFchs.txt");//need to data file to process
+
+  firstWarningOccurence_=true;
 }
 
 HTauTauTreeFromNanoBase::~HTauTauTreeFromNanoBase()
@@ -305,6 +307,8 @@ void HTauTauTreeFromNanoBase::Loop(){
 	httTree->Fill();
 	hStats->Fill(2);//Number of events saved to ntuple
 	hStats->Fill(3,httEvent->getMCWeight());//Sum of weights saved to ntuple
+	if(firstWarningOccurence_)//stop to warn once the first pair is found and filled
+	  firstWarningOccurence_ = false;
       }
    }
 
@@ -915,7 +919,8 @@ Double_t  HTauTauTreeFromNanoBase::getProperty(std::string name, unsigned int in
     if(name.find("pdgId")!=std::string::npos){
       TBranch *branch = fChain->GetBranch("Tau_charge");
       if(!branch){
-	std::cout<<"Branch: Tau_charge not found in the TTree, return pdgId=-15"<<std::endl;
+	if(firstWarningOccurence_)
+	  std::cout<<"Branch: Tau_charge not found in the TTree, return pdgId=-15"<<std::endl;
 	return -15;
       }
       TLeaf *leaf = branch->FindLeaf("Tau_charge");
@@ -933,7 +938,8 @@ Double_t  HTauTauTreeFromNanoBase::getProperty(std::string name, unsigned int in
   }
   TBranch *branch = fChain->GetBranch(name.c_str());
   if(!branch){
-    std::cout<<"Branch: "<<name<<" not found in the TTree."<<std::endl;
+    if(firstWarningOccurence_)
+      std::cout<<"Branch: "<<name<<" not found in the TTree."<<std::endl;
     return 0;
   }
 
