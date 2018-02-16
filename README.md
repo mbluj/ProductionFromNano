@@ -18,10 +18,10 @@ Port of [tools by A. Kalinowski, M. Bluj et al. based on KLUB/LLR trees](https:/
 
 ---
 
-Installation recipe for CMSSW_9_2_4
+Installation recipe for CMSSW_9_4_4
 ```
-scram project -n CMSSW_9_4_2_fromNano CMSSW CMSSW_9_4_2
-cd CMSSW_9_4_2_fromNano/src/
+scram project -n CMSSW_9_4_4_fromNano CMSSW CMSSW_9_4_4
+cd CMSSW_9_4_4_fromNano/src/
 cmsenv
 # NanoAOD and tools 
 git cms-addpkg PhysicsTools/NanoAOD #not mandatory, but it initializes git for CMSSW which is already useful
@@ -41,3 +41,4 @@ scram b -j 4
 ---
 Release notes:
 * 16.01.2018, M.Bluj, initial version for 80X (2016) inputs with CMSSW_9_4_2
+* 26.02.2018, M.Bluj, update to NanoAOD of 05Feb2018 production of 2016 data wiht CMSSW_9_4_4
