@@ -33,6 +33,8 @@
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
 #include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
 
+#include "DataFormats/Provenance/interface/LuminosityBlockRange.h"
+
 class HTauTauTreeFromNanoBase : public NanoEventsSkeleton {
 public :
 
@@ -49,7 +51,7 @@ public :
     float leg1Eta, leg2Eta;
   };
 
-  virtual void initHTTTree(TTree *tree, std::string prefix="HTT");
+  virtual void initHTTTree(const TTree *tree, std::string prefix="HTT");
   void initJecUnc(std::string correctionFile);
 
   void fillEvent();
@@ -76,6 +78,7 @@ public :
   double getPtReweight(const TLorentzVector &genBosonP4, bool doSUSY=false);
   bool isGoodToMatch(unsigned int ind);
   TLorentzVector getGenComponentP4(std::vector<unsigned int> &indexes, unsigned int iAbsCharge);
+  bool eventInJson();
 
   template<typename T> T getBranchValue(const char *branchAddress, unsigned int index);
   Double_t getProperty(std::string name, unsigned int index, std::string colType="");
@@ -113,12 +116,14 @@ public :
   TFile* zPtReweightFile, *zPtReweightSUSYFile;
   TLorentzVector p4SVFit, p4Leg1SVFit, p4Leg2SVFit;   
 
+  std::vector<edm::LuminosityBlockRange> jsonVector;
+
   bool firstWarningOccurence_; // used to print warnings only at first occurnece in the event loop
 
   std::vector<std::string> leptonPropertiesList, genLeptonPropertiesList, jecUncertList;
   std::vector<JetCorrectionUncertainty*> jecUncerts;
 
-  HTauTauTreeFromNanoBase(TTree *tree=0, bool doSvFit=false, bool correctRecoil=false, std::string prefix="HTT");
+  HTauTauTreeFromNanoBase(TTree *tree=0, bool doSvFit=false, bool correctRecoil=false, std::vector<std::string> lumis = std::vector<std::string>(), string prefix="HTT");
   virtual ~HTauTauTreeFromNanoBase();
   virtual Int_t    Cut(Long64_t entry);
   virtual void     Loop();

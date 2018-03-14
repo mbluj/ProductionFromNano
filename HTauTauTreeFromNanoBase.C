@@ -11,31 +11,58 @@
 #include <fstream>
 #include <algorithm>
 
-HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, bool correctRecoil, std::string prefix) : NanoEventsSkeleton(tree)
+HTauTauTreeFromNanoBase::HTauTauTreeFromNanoBase(TTree *tree, bool doSvFit, bool correctRecoil, std::vector<std::string> lumis, std::string prefix) : NanoEventsSkeleton(tree)
 {
 
   ///Init HTT ntuple
   initHTTTree(tree, prefix);
 
+  ///Parse lumis to be processed
+  for(unsigned int iL=0; iL<lumis.size(); ++iL){
+    std::size_t pos = lumis[iL].find("-");
+    const char *block1 = (lumis[iL].substr(0,pos)).c_str();
+    const char *block2 = (lumis[iL].substr(pos+1)).c_str();
+    char *pEnd = NULL;
+    long int r1, l1, r2, l2;
+    r1 = strtol(block1,&pEnd,10);
+    l1 = strtol(pEnd+1,NULL,10);
+    pEnd = NULL;
+    r2 = strtol(block2,&pEnd,10);
+    l2 = strtol(pEnd+1,NULL,10);
+    edm::LuminosityBlockRange lumiRange(edm::LuminosityBlockID(r1,l1),
+					edm::LuminosityBlockID(r2,l2));
+    jsonVector.push_back(lumiRange);
+  }
+  std::cout<<"[HTauTauTreeFromNanoBase]: Size of jsonVec: "<<jsonVector.size()<<std::endl;
+  //for(unsigned int iL=0; iL<jsonVector.size(); ++iL){
+  //  std::cout<<"\t lumi range: "<<jsonVector[iL]<<std::endl;
+  //}
+
   ///Initialization of SvFit
   if(doSvFit){
+    std::cout<<"[HTauTauTreeFromNanoBase]: Run w/ SVFit"<<std::endl;
     unsigned int verbosity = 0;//Set the debug level to 3 for testing
     svFitAlgo_ = new ClassicSVfit(verbosity);
     //svFitAlgo_->setMaxObjFunctionCalls(100000); // CV: default is 100000 evaluations of integrand per event
     svFitAlgo_->setHistogramAdapter(new classic_svFit::DiTauSystemHistogramAdapter());//needed?
     //svFitAlgo_->setLikelihoodFileName("testClassicSVfit.root");//needed?
     svFitAlgo_->setDiTauMassConstraint(-1);//argument>0 constraints di-tau mass to its value
-  } else
+  } else {
+    std::cout<<"[HTauTauTreeFromNanoBase]: Run w/o SVFit"<<std::endl;
     svFitAlgo_=nullptr;
+  }
 
   ///Initialization of RecoilCorrector
   if(correctRecoil){
+    std::cout<<"[HTauTauTreeFromNanoBase]: Apply MET recoil corrections"<<std::endl;
     //std::string correctionFile = std::string(getenv("CMSSW_BASE"))+"/src/";
     //correctionFile += "HTT-utilities/RecoilCorrections/data/TypeI-PFMet_Run2016BtoH.root";
     std::string correctionFile = "HTT-utilities/RecoilCorrections/data/TypeI-PFMet_Run2016BtoH.root";
     recoilCorrector_= new RecoilCorrector(correctionFile);
-  } else
+  } else{
+    std::cout<<"[HTauTauTreeFromNanoBase]: Do not apply MET recoil corrections"<<std::endl;
     recoilCorrector_=nullptr;
+  }
 
   ///Get files with weights
   zPtReweightFile = new TFile("zpt_weights_2016_BtoH.root");  
@@ -67,7 +94,7 @@ HTauTauTreeFromNanoBase::~HTauTauTreeFromNanoBase()
 }
 
 /////////////////////////////////////////////////
-void HTauTauTreeFromNanoBase::initHTTTree(TTree *tree, std::string prefix){
+void HTauTauTreeFromNanoBase::initHTTTree(const TTree *tree, std::string prefix){
 
   if(prefix=="") prefix="HTT";
   prefix += "_";
@@ -276,7 +303,12 @@ void HTauTauTreeFromNanoBase::Loop(){
       nb = fChain->GetEntry(jentry);   nbytes += nb;
 
       httEvent->clear();
-      
+
+      //if(jentry%1000==0) std::cout<<"Processing "<<jentry<<"th event"<<std::endl;//FIXME
+      //Check if event is contained in JSon
+      if( !eventInJson() ) continue;
+      //if(jentry%1000==0) std::cout<<"\t"<<jentry<<"th event in JSon"<<std::endl;//FIXME
+
       unsigned int bestPairIndex = Cut(ientry);
 
       fillEvent();
@@ -287,6 +319,7 @@ void HTauTauTreeFromNanoBase::Loop(){
       bestPairIndex_ = bestPairIndex;
 
       if(bestPairIndex<9999){
+	//if(jentry%1000==0) std::cout<<"\t"<<jentry<<"th event with good pair"<<std::endl;//FIXME
 
 	///Call pairSelection again to set selection bits for the selected pair.
         pairSelection(bestPairIndex);
@@ -1898,6 +1931,21 @@ int HTauTauTreeFromNanoBase::genTauDecayMode(std::vector<unsigned int> &daughter
   }
   return tauDecayMode;
 
+}
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+bool HTauTauTreeFromNanoBase::eventInJson(){
+  //If the jsonVec is empty, then no JSON file was provided so all events should be accepted
+  if( jsonVector.empty() )
+    return true;
+
+  edm::LuminosityBlockID lumiID(run, luminosityBlock);
+  for(std::vector<edm::LuminosityBlockRange>::const_iterator itr = jsonVector.begin();
+      itr != jsonVector.end(); ++itr){
+    if( edm::contains(*itr,lumiID) ) return true;
+  }
+
+  return false;
 }
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
