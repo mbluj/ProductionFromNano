@@ -10,8 +10,8 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 50000
 
 process.source = cms.Source("PoolSource",
-                            fileNames = cms.untracked.vstring(
-                            )
+                            fileNames = cms.untracked.vstring(),
+                            lumisToProcess = cms.untracked.VLuminosityBlockRange()
 )
 process.source.fileNames.append(
     'file:///home/mbluj/work/data/NanoAOD/80X_with941/VBFHToTauTau_M-125_80X/v3/test80X_NANO_1.root'

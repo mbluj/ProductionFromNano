@@ -90,10 +90,10 @@ def prepareCrabCfg(dataset,
     if dataset.split("/")[2].find("3Jets")!=-1 or dataset.split("/")[2].find("4Jets")!=-1:
         eventsPerJob = 1000
 
-    #config.Data.splitting = 'EventAwareLumiBased'
-    #config.Data.unitsPerJob = eventsPerJob
-    config.Data.splitting = 'FileBased'
-    config.Data.unitsPerJob = 1 #number of files per jobs
+    config.Data.splitting = 'EventAwareLumiBased'
+    config.Data.unitsPerJob = eventsPerJob
+    #config.Data.splitting = 'FileBased'
+    #config.Data.unitsPerJob = 1 #number of files per jobs
     config.Data.totalUnits = -1
 
     config.Data.lumiMask=""
@@ -118,7 +118,7 @@ from datasetsMoriond17 import datasets
 
 ##TEST
 datasets = [
-    "/VBFHToTauTau_M125_13TeV_powheg_pythia8/bluj-RunIISummer16NanoAOD940-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v3-8c9412e29164719d2de5b19c3daa1df7/USER",
+    "/VBFHToTauTau_M125_13TeV_powheg_pythia8/RunIISummer16NanoAOD-PUMoriond17_05Feb2018_94X_mcRun2_asymptotic_v2-v1/NANOAODSIM"
 ]
 
 ###############
@@ -130,20 +130,20 @@ if submitJobs:
 
         prepareCrabCfg(crabCfgName="crab3.py",
                        dataset=dataset,
-                       #inputDBS = 'global',
-                       inputDBS = 'phys03',
+                       inputDBS = 'global',
+                       #inputDBS = 'phys03',
                        eventsPerJob=eventsPerJob,
                        jsonFile=jsonFile2016,
                        storage_element="T2_PL_Swierk",
-                       publish_data_suffix = "test_v1")                  
+                       publish_data_suffix = "test_v2")
 ########################################################
 ########################################################
 ## Merge output ROOT files.
 ########################################################
 if mergeJobs:
     for dataset in datasets:
-        mergeDataset(dataset=dataset, publish_data_suffix = "test_v1",
-                                      outputDir="/mnt/home/mbluj/work/data/WAWNTuples/FromNano/2016/NTUPLES_23_01_2018/")
+        mergeDataset(dataset=dataset, publish_data_suffix = "test_v2",
+                                      outputDir="/mnt/home/mbluj/work/data/WAWNTuples/FromNano/2016/NTUPLES_15_03_2018/")
 
 #for a in v1/*v7_SM*; do crab resubmit -d $a; doneQ
 #for a in v1/*Run2016*v7_SM*; do crab report -d $a; done

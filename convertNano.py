@@ -37,6 +37,15 @@ fileNames = [
     "DEBF5F61-CC12-E811-B47A-0CC47AA9943A.root",
     "5A038C2A-CC12-E811-B729-7845C4FC3B8D.root",
 ]
+
+lumisToProcess = process.source.lumisToProcess
+#import FWCore.ParameterSet.Config as cms
+#lumisToProcess = cms.untracked.VLuminosityBlockRange( ("1:2047-1:2047", "1:2048-1:2048", "1:6145-1:6145", "1:4098-1:4098", "1:3-1:7", "1:6152-1:6152", "1:9-1:11", "1:273-1:273", "1:4109-1:4109", "1:4112-1:4112", "1:4115-1:4116") )
+from ROOT import vector
+vlumis = vector('string')()
+for lumi in lumisToProcess:
+    vlumis.push_back(lumi)
+
 for name in fileNames:
     aFile = "file:///home/mbluj/work/data/NanoAOD/80X_with944/VBFHToTauTau_M125_13TeV_powheg_pythia8/RunIISummer16NanoAOD_PUMoriond17_05Feb2018_94X_mcRun2_asymptotic_v2-v1/"+name
     print "Adding file: ",aFile
@@ -44,11 +53,11 @@ for name in fileNames:
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
     print "TTree entries: ",aTree.GetEntries()
-    HMuTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
+    HMuTauhTreeFromNano(aTree,doSvFit,applyRecoil,vlumis).Loop()
     print "Making the TauTau tree"
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
-    HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
+    HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil,vlumis).Loop()
 
 #Produce framework report required by CRAB
 print "Generate framework report for CRAB"

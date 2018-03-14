@@ -31,6 +31,11 @@ if status==0:
 
 from ROOT import HMuTauhTreeFromNano, HTauhTauhTreeFromNano
 
+from ROOT import vector
+vlumis = vector('string')()
+for lumi in process.source.lumisToProcess:
+    vlumis.push_back(lumi)
+
 for aFile in process.source.fileNames:
     aFile = aFile.replace("/store","root://cms-xrd-global.cern.ch///store")
     print "Adding file: ",aFile
@@ -38,11 +43,11 @@ for aFile in process.source.fileNames:
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
     print "TTree entries: ",aTree.GetEntries()
-    HMuTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
+    HMuTauhTreeFromNano(aTree,doSvFit,applyRecoil,vlumis).Loop()
     print "Making the TauTau tree"
     aROOTFile = TFile.Open(aFile)
     aTree = aROOTFile.Get("Events")
-    HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil).Loop()
+    HTauhTauhTreeFromNano(aTree,doSvFit,applyRecoil,vlumis).Loop()
 
 #Merge files.
 command = "hadd -f HTTMT_HTauTauAnalysis.root HTTMT_*.root"
