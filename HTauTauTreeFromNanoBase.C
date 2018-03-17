@@ -1154,6 +1154,26 @@ int HTauTauTreeFromNanoBase::getMCMatching(unsigned int index, std::string colTy
 			GenPart_eta[iGen],
 			GenPart_phi[iGen],
 			(absPdgId==11?0.51100e-3:0.10566));
+      /*MB: Stauts flags in NanoAOD:
+	"statusFlags().isLastCopyBeforeFSR()                  * 16384 +" <<14
+	"statusFlags().isLastCopy()                           * 8192  +" <<12
+	"statusFlags().isFirstCopy()                          * 4096  +" <<12
+	"statusFlags().fromHardProcessBeforeFSR()             * 2048  +" <<11
+	"statusFlags().isDirectHardProcessTauDecayProduct()   * 1024  +" <<10
+	"statusFlags().isHardProcessTauDecayProduct()         * 512   +" <<9
+	"statusFlags().fromHardProcess()                      * 256   +" <<8
+	"statusFlags().isHardProcess()                        * 128   +" <<7
+	"statusFlags().isDirectHadronDecayProduct()           * 64    +" <<6
+	"statusFlags().isDirectPromptTauDecayProduct()        * 32    +" <<5
+	"statusFlags().isDirectTauDecayProduct()              * 16    +" <<4
+	"statusFlags().isPromptTauDecayProduct()              * 8     +" <<3
+	"statusFlags().isTauDecayProduct()                    * 4     +" <<2
+	"statusFlags().isDecayedLeptonHadron()                * 2     +" <<1
+	"statusFlags().isPrompt()                             * 1      ",<<0
+      */
+      genFlags_tmp = GenPart_statusFlags[iGen];
+
+      /*MB: old code from times when statusFlags were not available
       int mother_idx = GenPart_genPartIdxMother[findFirstCopy(iGen)];
       mother_idx = mother_idx<0?iGen:mother_idx;//protection
       unsigned int mother_absPdgId = std::abs(GenPart_pdgId[mother_idx]);
@@ -1175,10 +1195,14 @@ int HTauTauTreeFromNanoBase::getMCMatching(unsigned int index, std::string colTy
 	      false) {
 	genFlags_tmp |= (1 << 0);
       }
+      */
     }
     else {//tau
       int dm = genTauDecayMode(daughterIndexes);
       if(dm!=HTTAnalysis::tauDecayMuon && dm!=HTTAnalysis::tauDecaysElectron){
+	genFlags_tmp = GenPart_statusFlags[iGen];
+
+	/*MB: old code from times when statusFlags were not available
 	int mother_idx = GenPart_genPartIdxMother[findFirstCopy(iGen)];
 	mother_idx = mother_idx<0?iGen:mother_idx;//protection
 	unsigned int mother_absPdgId = std::abs(GenPart_pdgId[mother_idx]);
@@ -1196,13 +1220,14 @@ int HTauTauTreeFromNanoBase::getMCMatching(unsigned int index, std::string colTy
 	   false) {
 	  genFlags_tmp |= (1 << 0);
 	}
+	*/
 	for(unsigned int idau=0; idau<daughterIndexes.size(); ++idau){
 	  //it assumes that neutrinos are excluded
 	  TLorentzVector p4_dau;
 	  p4_dau.SetPtEtaPhiM(GenPart_pt[daughterIndexes[idau]],
 			      GenPart_eta[daughterIndexes[idau]],
 			      GenPart_phi[daughterIndexes[idau]],
-			      (GenPart_pdgId[daughterIndexes[idau]]==111?0.1350:0.1396));//use pi mass as simpled appox
+			      (GenPart_pdgId[daughterIndexes[idau]]==111?0.1350:0.1396));//use pi mass as simple appox
 	  p4_tmp+=p4_dau;
 	}
       }
@@ -1376,6 +1401,7 @@ bool HTauTauTreeFromNanoBase::findBosonP4(TLorentzVector &bosonP4, TLorentzVecto
     bool isFinal=getDirectDaughterIndexes(daughterIndexes,(int)iGen,false);//store neutrinos for further use
     if(!isFinal) continue;
 
+    /*MB: old code from times when statusFlags were not available
     bool fromHardProcessFinalState = false; //MB: note that it is actually not checked if the particles are final state ones!
     unsigned int firstCp_idx = findFirstCopy(iGen);
     if(GenPart_status[firstCp_idx]==3 || (GenPart_status[firstCp_idx]>20 && GenPart_status[firstCp_idx]<30)) fromHardProcessFinalState |= true;
@@ -1403,7 +1429,9 @@ bool HTauTauTreeFromNanoBase::findBosonP4(TLorentzVector &bosonP4, TLorentzVecto
        mother_fromME || //or comes from ME
        false) {
       fromHardProcessFinalState |= true;
-    }
+    }*/
+    /*MB: "statusFlags().fromHardProcess()                      * 256   +" <<8 */
+    bool fromHardProcessFinalState = ( (GenPart_statusFlags[iGen] & (1<<8)) == (1<<8) );
     bool isElectron = (absPdgId == 11);
     bool isMuon = (absPdgId == 13);
     bool isNeutrino = (absPdgId == 12 || absPdgId == 14 || absPdgId == 16);
@@ -1425,10 +1453,8 @@ bool HTauTauTreeFromNanoBase::findBosonP4(TLorentzVector &bosonP4, TLorentzVecto
       bosonP4 += p4;
       if(!isNeutrino)
 	visBosonP4 += p4;
-      else
-	visBosonP4 -= p4;
       if(isTau){
-	//count tau neutrinos
+	//subtract p4 of tau neutrinos from visBosonP4
 	for(unsigned int iDau=0; iDau<daughterIndexes.size(); ++iDau){
 	  unsigned int absPdgIdDau = std::abs(GenPart_pdgId[daughterIndexes[iDau]]);
 	  if(absPdgIdDau != 12 && absPdgIdDau != 14 && absPdgIdDau != 16 ) //neutrinos
