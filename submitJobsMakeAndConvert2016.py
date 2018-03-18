@@ -54,7 +54,7 @@ def prepareCrabCfg(dataset,
     ##Modify CRAB3 configuration
     config.JobType.psetName = 'PSet.py'
     isWZH = False
-    if dataset.split("/")[2].find("JetsToLL")!=-1 or dataset.split("/")[2].find("JetsToLNu")!=-1 or dataset.split("/")[2].find("HToTauTau")!=-1:
+    if dataset.split("/")[1].find("JetsToLL")!=-1 or dataset.split("/")[1].find("JetsToLNu")!=-1 or dataset.split("/")[1].find("HToTauTau")!=-1:
         isWZH = True
     if isWZH:
         config.JobType.scriptExe = 'convertNano_recoil.py' #RECOIL
@@ -135,15 +135,15 @@ if submitJobs:
                        eventsPerJob=eventsPerJob,
                        jsonFile=jsonFile2016,
                        storage_element="T2_PL_Swierk",
-                       publish_data_suffix = "test_v2")
+                       publish_data_suffix = "test_v4")
 ########################################################
 ########################################################
 ## Merge output ROOT files.
 ########################################################
 if mergeJobs:
     for dataset in datasets:
-        mergeDataset(dataset=dataset, publish_data_suffix = "test_v2",
-                                      outputDir="/mnt/home/mbluj/work/data/WAWNTuples/FromNano/2016/NTUPLES_15_03_2018/")
+        mergeDataset(dataset=dataset, publish_data_suffix = "test_v4",
+                                      outputDir="/mnt/home/mbluj/work/data/WAWNTuples/FromNano/2016/NTUPLES_16_03_2018/")
 
 #for a in v1/*v7_SM*; do crab resubmit -d $a; doneQ
 #for a in v1/*Run2016*v7_SM*; do crab report -d $a; done
